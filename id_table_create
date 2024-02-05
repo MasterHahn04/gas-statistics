@@ -2,8 +2,8 @@ CREATE TABLE `id` (
 	`index` bigint NOT NULL AUTO_INCREMENT,
 	`time` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP(),
 	`status` VARCHAR(255) NOT NULL,
-	`e5` FLOAT,
-	`e10` FLOAT,
-	`diesel` FLOAT,
+	`e5` FLOAT(4,3),
+	`e10` FLOAT(4,3),
+	`diesel` FLOAT(4,3),
 	PRIMARY KEY (`index`)
 );

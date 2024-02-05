@@ -1,5 +1,5 @@
 package request
 
 type Request interface {
-	MakeRequest([]string) error
+	MakeRequest([]string) (*PricesRespond, string, error)
 }

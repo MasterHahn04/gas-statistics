@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"gas-statistics/pkg/request"
 	"gas-statistics/pkg/storage"
@@ -19,7 +18,6 @@ func main() {
 
 	//TODO One Time per Day request the list of the Stations to hold the stations Table up to date
 
-	//TODO Save the Prices in a Database
 	//TODO Ensure to not store the same price twice beyond each other
 
 	//Features for the Future (not in the first Version)
@@ -30,21 +28,16 @@ func main() {
 
 	//Implement the interfaces
 	//TODO Create the Functions that it can easily be switch to proceed the Data of the MTK-S
-	//TODO Create the Functions that it can easily be switch to proceed the Data of the Tankerkoenig
 	//^^^ not in the first Version ^^^
 
 	//Tankerkoenig Functions
-	//TODO Create the Function to request the Prices of the Stations via Tankerkoenig by the prices.php
 	//TODO Create the Function to request the List of the Stations via Tankerkoenig by the list.php
 	//For the Tankerkoenig Api must be the API-Key set in the Environment Variables
 	//For the Tankerkoenig Api must be the ID, the lng and the lat of max 10 stations set in the Database
 
 	//Database Functions
-	//TODO Create the Function to store the Prices in the Database
 	//TODO Create the Function to store the Stations Details in the Database
-	//TODO Create the Function to store the whole Respond in the Database
 
-	//TODO Load the Environment Variables
 	err := godotenv.Load(".env")
 	if err != nil {
 		log.Fatalf("Error loading .env file")
@@ -108,25 +101,27 @@ func main() {
 		fmt.Printf("The Tankerkoenig API-Key is: %s\n", src.ApiKey)
 		r = &src
 	}
-	//Test
-	log.Println(r)
-	/*
-		ids, err := s.GetIDs()
-		if err != nil {
-			fmt.Printf("The Request to the Database failed\n Error: %s\n", err)
-		}
-	*/
-	/*
-		err = r.MakeRequest(ids)
-		if err != nil {
-			fmt.Printf("The Request to the Source failed\n Error: %s\n", err)
-		}
-	*/
-	test := new(request.PricesRespond)
-	//TODO Undo the Test
-	err = json.NewDecoder(strings.NewReader(rohdaten)).Decode(test)
+	ids, err := s.GetIDs()
 	if err != nil {
-		fmt.Printf("The Decoding of the Respond failed\n Error: %s\n", err)
+		fmt.Printf("The Request to the Database failed\n Error: %s\n", err)
 	}
-	fmt.Printf("The Respond is: %v\n", test)
+
+	//Make the Request to the Source, get the Prices and give it back
+	prices, body, err := r.MakeRequest(ids)
+	if err != nil {
+		fmt.Printf("The Request to the Source failed\n Error: %s\n", err)
+	}
+
+	//Store the Response of the Request in the Database
+	err = s.StoreResponse(body)
+	if err != nil {
+		fmt.Printf("The Storage of the Response failed\n Error: %s\n", err)
+	}
+
+	for index, value := range prices.Prices {
+		err := s.StorePrices(index, value.Status, value.E5, value.E10, value.Diesel)
+		if err != nil {
+			fmt.Printf("The Storage of the Prices failed\n Error: >%s<\n", err)
+		}
+	}
 }
