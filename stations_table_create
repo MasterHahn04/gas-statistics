@@ -1,0 +1,21 @@
+CREATE TABLE `stations` (
+                            `index` bigint NOT NULL AUTO_INCREMENT,
+                            `id` uuid NOT NULL,
+                            `name` VARCHAR(255),
+                            `brand` VARCHAR(255),
+                            `street` VARCHAR(255),
+                            `houseNumber` VARCHAR(255),
+                            `postCode` int,
+                            `place` VARCHAR(255),
+                            `openingTimes` VARCHAR(255),
+                            `overrides` VARCHAR(255),
+                            `wholeDay` bool,
+                            `isOpen` bool,
+                            `e5` FLOAT,
+                            `e10` FLOAT,
+                            `diesel` FLOAT,
+                            `lat` FLOAT NOT NULL,
+                            `lng` FLOAT NOT NULL,
+                            `state` VARCHAR(255),
+                            PRIMARY KEY (`index`)
+);

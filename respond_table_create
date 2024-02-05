@@ -1,0 +1,6 @@
+CREATE TABLE `respond` (
+                           `index` bigint NOT NULL AUTO_INCREMENT,
+                           `time` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP(),
+                           `respond` longtext NOT NULL,
+                           PRIMARY KEY (`index`)
+);
