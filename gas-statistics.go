@@ -6,8 +6,10 @@ import (
 	"gas-statistics/pkg/storage"
 	"github.com/joho/godotenv"
 	"log"
+	"math/rand"
 	"os"
 	"strings"
+	"time"
 )
 
 func main() {
@@ -75,53 +77,89 @@ func main() {
 		}
 		s = &db
 	}
-	err = s.Connect()
-	if err != nil {
-		fmt.Printf("The Connection to the Database failed\n Error: %s\n", err)
-	}
 
-	//--------------------------------
-
-	var r request.Request
-	//Switch Case to choose the Request
-	source, used := os.LookupEnv("SOURCE")
-	if used != true {
-		fmt.Println("The Environment Variable SOURCE is not set\n")
-	}
-	fmt.Printf("The Source is: %s\n", source)
-	switch strings.ToLower(source) {
-	case "tankerkoenig":
-		var src request.RequestTankerkoenig
-		//Key for the access to the free Tankerkoenig-Gas-Price-API
-		//For own Key please register here https://creativecommons.tankerkoenig.de
-		src.ApiKey, used = os.LookupEnv("TANKERKOENIG_API_KEY")
-		if used != true {
-			fmt.Println("The Environment Variable TANKERKOENIG_API_KEY is not set\n")
-		}
-		fmt.Printf("The Tankerkoenig API-Key is: %s\n", src.ApiKey)
-		r = &src
-	}
-	ids, err := s.GetIDs()
-	if err != nil {
-		fmt.Printf("The Request to the Database failed\n Error: %s\n", err)
-	}
-
-	//Make the Request to the Source, get the Prices and give it back
-	prices, body, err := r.MakeRequest(ids)
-	if err != nil {
-		fmt.Printf("The Request to the Source failed\n Error: %s\n", err)
-	}
-
-	//Store the Response of the Request in the Database
-	err = s.StoreResponse(body)
-	if err != nil {
-		fmt.Printf("The Storage of the Response failed\n Error: %s\n", err)
-	}
-
-	for index, value := range prices.Prices {
-		err := s.StorePrices(index, value.Status, value.E5, value.E10, value.Diesel)
+	//Circle the following Code every 5 Minutes and add a random delay of 1-50 seconds to the 5 Minutes that it will never run on the full minute
+	for {
+		//Connect to the Database
+		err = s.Connect()
 		if err != nil {
-			fmt.Printf("The Storage of the Prices failed\n Error: >%s<\n", err)
+			fmt.Printf("The Connection to the Database failed\n Error: %s\n", err)
 		}
+
+		//--------------------------------
+
+		var r request.Request
+
+		//Lookup what the Content of the Environment Variable SOURCE is
+		source, used := os.LookupEnv("SOURCE")
+		if used != true {
+			fmt.Println("The Environment Variable SOURCE is not set\n")
+		}
+
+		//Print which Source is used
+		fmt.Printf("The Source is: %s\n", source)
+
+		//Switch Case to choose the Request
+		switch strings.ToLower(source) {
+		case "tankerkoenig":
+			var src request.RequestTankerkoenig
+			//Key for the access to the free Tankerkoenig-Gas-Price-API
+			//For own Key please register here https://creativecommons.tankerkoenig.de
+			src.ApiKey, used = os.LookupEnv("TANKERKOENIG_API_KEY")
+			if used != true {
+				fmt.Println("The Environment Variable TANKERKOENIG_API_KEY is not set\n")
+			}
+			fmt.Printf("The Tankerkoenig API-Key is: %s\n", src.ApiKey)
+			r = &src
+		}
+		ids, err := s.GetIDs()
+		if err != nil {
+			fmt.Printf("The Request to the Database failed\n Error: %s\n", err)
+		}
+
+		//Make the Request to the Source, get the Prices and give it back
+		prices, body, err := r.MakeRequest(ids)
+		if err != nil {
+			fmt.Printf("The Request to the Source failed\n Error: %s\n", err)
+		}
+
+		//Store the Response of the Request in the Database
+		err = s.StoreResponse(body)
+		if err != nil {
+			fmt.Printf("The Storage of the Response failed\n Error: %s\n", err)
+		}
+
+		//Store the Prices of the Stations in the Database
+		for index, value := range prices.Prices {
+			err := s.StorePrices(index, value.Status, value.E5, value.E10, value.Diesel)
+			if err != nil {
+				fmt.Printf("The Storage of the Prices failed\n Error: >%s<\n", err)
+			}
+		}
+
+		//Close the Connection to the Database
+		err = s.Close()
+		if err != nil {
+			fmt.Printf("To close the Connection to the Database failed\n Error: %s\n", err)
+		}
+
+		//Print the Time when the for loop is finished
+		fmt.Printf("The for loop is finished at: %s\n", time.Now().Format("2006-01-02 15:04:05"))
+
+		//Wait 5 Minutes and add a random delay of 1-50 seconds to the 5 Minutes
+		time.Sleep(time.Minute*5 + time.Second*time.Duration(rand.Intn(50)))
+
+		//Check if the Time is a full Minute and add a random delay of 1-50 seconds to the 5 Minutes
+		//If the Time is a full Minute, the Request will be blocked by the API
+		if time.Now().Second() == 0 {
+			time.Sleep(time.Second * 3)
+		}
+		if time.Now().Minute() == 0 {
+			time.Sleep(time.Second * 23)
+		}
+
+		//Print the Time that the Loop will now start again
+		fmt.Printf("The for loop will now start again at: %s\n", time.Now().Format("2006-01-02 15:04:05"))
 	}
+
 }
