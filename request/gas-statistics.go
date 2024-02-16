@@ -2,10 +2,8 @@ package main
 
 import (
 	"fmt"
-	"gas-statistics/pkg/request"
-	"gas-statistics/pkg/storage"
-	"github.com/joho/godotenv"
-	"log"
+	request2 "gas-statistics/request/pkg/request"
+	storage2 "gas-statistics/request/pkg/storage"
 	"math/rand"
 	"os"
 	"strings"
@@ -40,21 +38,24 @@ func main() {
 	//Database Functions
 	//TODO Create the Function to store the Stations Details in the Database
 
-	err := godotenv.Load(".env")
-	if err != nil {
-		log.Fatalf("Error loading .env file")
-	}
+	//Uncomment the following Code to use the .env File
+	/*
+		err := godotenv.Load(".env")
+		if err != nil {
+			log.Fatalf("Error loading .env file")
+		}
+	*/
 
 	databaseType, used := os.LookupEnv("DATABASE_TYPE")
 	if used != true {
 		fmt.Println("The Environment Variable DATABASE_TYPE is not set\n")
 	}
 	fmt.Printf("The Database Type is: %s\n", databaseType)
-	var s storage.Storage
+	var s storage2.Storage
 	//Switch Case to choose the Database
 	switch strings.ToLower(databaseType) {
 	case "mariadb", "mysql":
-		var db storage.DatabaseMariaDB
+		var db storage2.DatabaseMariaDB
 		db.Host, used = os.LookupEnv("DB_HOST")
 		if used != true {
 			fmt.Println("The Environment Variable DB_HOST is not set\n")
@@ -80,15 +81,30 @@ func main() {
 
 	//Circle the following Code every 5 Minutes and add a random delay of 1-50 seconds to the 5 Minutes that it will never run on the full minute
 	for {
+		//Wait 5 Minutes and add a random delay of 1-50 seconds to the 5 Minutes
+		time.Sleep(time.Minute*5 + time.Second*time.Duration(rand.Intn(50)))
+
+		//Check if the Time is a full Minute and add a random delay of 1-50 seconds to the 5 Minutes
+		//If the Time is a full Minute, the Request will be blocked by the API
+		if time.Now().Second() == 0 {
+			time.Sleep(time.Second * 3)
+		}
+		if time.Now().Minute() == 0 {
+			time.Sleep(time.Second * 23)
+		}
+
+		//Print the Time that the Loop will now start again
+		fmt.Printf("The for loop will now start again at: %s\n", time.Now().Format("2006-01-02 15:04:05"))
+
 		//Connect to the Database
-		err = s.Connect()
+		err := s.Connect()
 		if err != nil {
 			fmt.Printf("The Connection to the Database failed\n Error: %s\n", err)
 		}
 
 		//--------------------------------
 
-		var r request.Request
+		var r request2.Request
 
 		//Lookup what the Content of the Environment Variable SOURCE is
 		source, used := os.LookupEnv("SOURCE")
@@ -102,7 +118,7 @@ func main() {
 		//Switch Case to choose the Request
 		switch strings.ToLower(source) {
 		case "tankerkoenig":
-			var src request.RequestTankerkoenig
+			var src request2.RequestTankerkoenig
 			//Key for the access to the free Tankerkoenig-Gas-Price-API
 			//For own Key please register here https://creativecommons.tankerkoenig.de
 			src.ApiKey, used = os.LookupEnv("TANKERKOENIG_API_KEY")
@@ -145,21 +161,6 @@ func main() {
 
 		//Print the Time when the for loop is finished
 		fmt.Printf("The for loop is finished at: %s\n", time.Now().Format("2006-01-02 15:04:05"))
-
-		//Wait 5 Minutes and add a random delay of 1-50 seconds to the 5 Minutes
-		time.Sleep(time.Minute*5 + time.Second*time.Duration(rand.Intn(50)))
-
-		//Check if the Time is a full Minute and add a random delay of 1-50 seconds to the 5 Minutes
-		//If the Time is a full Minute, the Request will be blocked by the API
-		if time.Now().Second() == 0 {
-			time.Sleep(time.Second * 3)
-		}
-		if time.Now().Minute() == 0 {
-			time.Sleep(time.Second * 23)
-		}
-
-		//Print the Time that the Loop will now start again
-		fmt.Printf("The for loop will now start again at: %s\n", time.Now().Format("2006-01-02 15:04:05"))
 	}
 
 }

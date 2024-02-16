@@ -1,4 +1,4 @@
-module gas-statistics
+module gas-statistics/request
 
 go 1.21.5
 
